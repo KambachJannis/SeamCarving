@@ -7,14 +7,12 @@ import os
 import cv2
 import numpy as np
 
-def remove_vertical_seam(image, image_energy):
+def find_vertical_seam(image_energy):
     """
-    Finds and removes lowest-energy vertical seam from an image
+    Finds a vertical seam by calculating the cumulative energy
     """
     image_height, image_width = image_energy.shape
     cumulative_min_energy = image_energy.copy()
-    image_result = np.zeros((image_height, image_width - 1, 3))
-    image_energy_result = np.zeros((image_height, image_width - 1))
     for row in range(1, image_height):
         for column in range(image_width):
             if column == 0:
@@ -26,19 +24,71 @@ def remove_vertical_seam(image, image_energy):
             else:
                 cumulative_min_energy[row, column] = image_energy[row, column] + min(
                     cumulative_min_energy[row - 1, column - 1:column + 1])
+    return cumulative_min_energy
+
+def remove_vertical_seam(image, image_energy):
+    """
+    Finds and removes lowest-energy vertical seam from an image
+    """
+    image_height, image_width = image_energy.shape
+    image_result = np.zeros((image_height, image_width - 1, 3))
+    image_energy_result = np.zeros((image_height, image_width - 1))
+    cumulative_min_energy = find_vertical_seam(image_energy)
     seam_column = np.argmin(cumulative_min_energy[image_height - 1, :])
     for row in reversed(range(image_height - 1)):
         image_result[row, :] = np.delete(image[row, :], seam_column, 0)
         image_energy_result[row, :] = np.delete(image_energy[row, :], seam_column, 0)
         if seam_column == 0:
             seam_column = seam_column + np.argmin(
-                cumulative_min_energy[row-1, seam_column:seam_column + 1])
+                cumulative_min_energy[row - 1, seam_column:seam_column + 1])
         elif seam_column == image_width - 1:
             seam_column = seam_column + np.argmin(
-                cumulative_min_energy[row-1, seam_column - 1:seam_column]) - 1
+                cumulative_min_energy[row - 1, seam_column - 1:seam_column]) - 1
         else:
             seam_column = seam_column + np.argmin(
-                cumulative_min_energy[row-1, seam_column - 1:seam_column + 1]) - 1
+                cumulative_min_energy[row - 1, seam_column - 1:seam_column + 1]) - 1
+    return (image_result, image_energy_result)
+
+def find_horizontal_seam(image_energy):
+    """
+    Finds a horizontal seam by calculating the cumulative energy
+    """
+    image_height, image_width = image_energy.shape
+    cumulative_min_energy = image_energy.copy()
+    for column in range(1, image_width):
+        for row in range(image_height):
+            if row == 0:
+                cumulative_min_energy[row, column] = image_energy[row, column] + min(
+                    cumulative_min_energy[row:row + 1, column - 1])
+            elif row == image_height - 1:
+                cumulative_min_energy[row, column] = image_energy[row, column] + min(
+                    cumulative_min_energy[row - 1:row, column - 1])
+            else:
+                cumulative_min_energy[row, column] = image_energy[row, column] + min(
+                    cumulative_min_energy[row - 1:row + 1, column - 1])
+    return cumulative_min_energy
+
+def remove_horizontal_seam(image, image_energy):
+    """
+    Finds and removes lowest-energy horizontal seam from an image
+    """
+    image_height, image_width = image_energy.shape
+    image_result = np.zeros((image_height, image_width - 1, 3))
+    image_energy_result = np.zeros((image_height, image_width - 1))
+    cumulative_min_energy = find_horizontal_seam(image_energy)
+    seam_row = np.argmin(cumulative_min_energy[:, image_width - 1])
+    for column in reversed(range(image_width - 1)):
+        image_result[:, column] = np.delete(image[:, column], seam_row, 0)
+        image_energy_result[:, column] = np.delete(image_energy[:, column], seam_row, 0)
+        if seam_row == 0:
+            seam_row = seam_row + np.argmin(
+                cumulative_min_energy[column - 1, seam_row:seam_row + 1])
+        elif seam_row == image_height - 1:
+            seam_row = seam_row + np.argmin(
+                cumulative_min_energy[column - 1, seam_row - 1:seam_row]) - 1
+        else:
+            seam_row = seam_row + np.argmin(
+                cumulative_min_energy[column - 1, seam_row - 1:seam_row + 1]) - 1
     return (image_result, image_energy_result)
 
 def derive(image, operator):
