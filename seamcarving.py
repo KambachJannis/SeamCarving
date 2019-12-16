@@ -9,11 +9,36 @@ import numpy as np
 
 def remove_vertical_seam(image, image_energy):
     """
-    Removes low-energy vertical seams from an image based on the energy of individual pixels
+    Finds and removes lowest-energy vertical seam from an image
     """
-    #TODO: whole function
-    image_result = image
-    image_energy_result = image_energy
+    image_height, image_width = image_energy.shape
+    cumulative_min_energy = image_energy.copy()
+    image_result = np.zeros((image_height, image_width - 1, 3))
+    image_energy_result = np.zeros((image_height, image_width - 1))
+    for row in range(1, image_height):
+        for column in range(image_width):
+            if column == 0:
+                cumulative_min_energy[row, column] = image_energy[row, column] + min(
+                    cumulative_min_energy[row - 1, column:column + 1])
+            elif column == image_width - 1:
+                cumulative_min_energy[row, column] = image_energy[row, column] + min(
+                    cumulative_min_energy[row - 1, column - 1:column])
+            else:
+                cumulative_min_energy[row, column] = image_energy[row, column] + min(
+                    cumulative_min_energy[row - 1, column - 1:column + 1])
+    seam_column = np.argmin(cumulative_min_energy[image_height - 1, :])
+    for row in reversed(range(image_height - 1)):
+        image_result[row, :] = np.delete(image[row, :], seam_column, 0)
+        image_energy_result[row, :] = np.delete(image_energy[row, :], seam_column, 0)
+        if seam_column == 0:
+            seam_column = seam_column + np.argmin(
+                cumulative_min_energy[row-1, seam_column:seam_column + 1])
+        elif seam_column == image_width - 1:
+            seam_column = seam_column + np.argmin(
+                cumulative_min_energy[row-1, seam_column - 1:seam_column]) - 1
+        else:
+            seam_column = seam_column + np.argmin(
+                cumulative_min_energy[row-1, seam_column - 1:seam_column + 1]) - 1
     return (image_result, image_energy_result)
 
 def derive(image, operator):
