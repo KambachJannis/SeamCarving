@@ -136,11 +136,11 @@ def resize_image(image, vertical_seams_to_remove, horizontal_seams_to_remove):
     """
     image_grayscale = convert_to_grayscale(image)
     image_energy = energy(image_grayscale)
+    #order = find_optimal_order(image_energy, vertical_seams_to_remove, horizontal_seams_to_remove)
     for _ in range(vertical_seams_to_remove):
         image, image_energy = remove_vertical_seam(image, image_energy)
-    #TODO: order of vertical and horizontal seams
     for _ in range(horizontal_seams_to_remove):
-        image, image_energy = remove_vertical_seam(image, image_energy)
+        image, image_energy = remove_horizontal_seam(image, image_energy)
     return image
 
 def main():
