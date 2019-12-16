@@ -73,8 +73,8 @@ def remove_horizontal_seam(image, image_energy):
     Finds and removes lowest-energy horizontal seam from an image
     """
     image_height, image_width = image_energy.shape
-    image_result = np.zeros((image_height, image_width - 1, 3))
-    image_energy_result = np.zeros((image_height, image_width - 1))
+    image_result = np.zeros((image_height - 1, image_width, 3))
+    image_energy_result = np.zeros((image_height - 1, image_width))
     cumulative_min_energy = find_horizontal_seam(image_energy)
     seam_row = np.argmin(cumulative_min_energy[:, image_width - 1])
     for column in reversed(range(image_width - 1)):
@@ -82,13 +82,13 @@ def remove_horizontal_seam(image, image_energy):
         image_energy_result[:, column] = np.delete(image_energy[:, column], seam_row, 0)
         if seam_row == 0:
             seam_row = seam_row + np.argmin(
-                cumulative_min_energy[column - 1, seam_row:seam_row + 1])
+                cumulative_min_energy[seam_row:seam_row + 1, column - 1])
         elif seam_row == image_height - 1:
             seam_row = seam_row + np.argmin(
-                cumulative_min_energy[column - 1, seam_row - 1:seam_row]) - 1
+                cumulative_min_energy[seam_row - 1:seam_row, column - 1]) - 1
         else:
             seam_row = seam_row + np.argmin(
-                cumulative_min_energy[column - 1, seam_row - 1:seam_row + 1]) - 1
+                cumulative_min_energy[seam_row - 1:seam_row + 1, column - 1]) - 1
     return (image_result, image_energy_result)
 
 def derive(image, operator):
@@ -134,12 +134,16 @@ def resize_image(image, vertical_seams_to_remove, horizontal_seams_to_remove):
     """
     Resizes and Image by removing low-energy horizontal and vertical seams
     """
+    print("-converting into grayscale...")
     image_grayscale = convert_to_grayscale(image)
+    print("-calculating energy...")
     image_energy = energy(image_grayscale)
     #order = find_optimal_order(image_energy, vertical_seams_to_remove, horizontal_seams_to_remove)
-    for _ in range(vertical_seams_to_remove):
+    for i in range(vertical_seams_to_remove):
+        print("-removing vertical seam " + str(i+1) + "...")
         image, image_energy = remove_vertical_seam(image, image_energy)
-    for _ in range(horizontal_seams_to_remove):
+    for j in range(horizontal_seams_to_remove):
+        print("-removing horizontal seam " + str(j+1) + "...")
         image, image_energy = remove_horizontal_seam(image, image_energy)
     return image
 
@@ -148,20 +152,20 @@ def main():
     Main function to read and write the file
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f')
-    parser.add_argument('-v')
-    parser.add_argument('-h')
+    parser.add_argument('-file')
+    parser.add_argument('-vertical', type=int)
+    parser.add_argument('-horizontal', type=int)
     arguments = parser.parse_args()
 
-    image_file = arguments.f
-    vertical_seams_to_remove = arguments.v
-    horizontal_seams_to_remove = arguments.h
+    image_file = arguments.file
+    vertical_seams_to_remove = arguments.vertical
+    horizontal_seams_to_remove = arguments.horizontal
 
-    if arguments.x is None and arguments.y is None:
+    if arguments.vertical is None and arguments.horizontal is None:
         sys.exit(0)
-    elif arguments.x is None:
+    elif arguments.vertical is None:
         vertical_seams_to_remove = 0
-    elif arguments.y is None:
+    elif arguments.horizontal is None:
         horizontal_seams_to_remove = 0
 
     if os.path.exists(image_file):
@@ -171,20 +175,20 @@ def main():
             new_height = int(height - horizontal_seams_to_remove)
             new_width = int(width - vertical_seams_to_remove)
             if new_width > 0 and new_height > 0:
-                print('go for resizing')
+                print("Starting to resize!")
                 result = resize_image(image, vertical_seams_to_remove, horizontal_seams_to_remove)
                 image_name = os.path.splitext(image_file)[0]
-                image_name_output = image_name + '_' + new_width + 'x' + new_height + '.png'
+                image_name_output = image_name + '_' + str(new_width) + 'x' + str(new_height) + '.png'
                 cv2.imwrite(image_name_output, result)
-                print('exported')
+                print("Successfully exported!")
             else:
-                print('too many seams to remove')
+                print("You are trying to remove too many seams for this picture.")
                 sys.exit(0)
         else:
-            print('file type incorrect')
+            print("Incorrect fily type.")
             sys.exit(0)
     else:
-        print('image not found')
+        print("File not found.")
         sys.exit(0)
 
 if __name__ == "__main__":
