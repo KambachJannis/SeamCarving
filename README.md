@@ -11,8 +11,8 @@ This is just another implementation of the seam carving technique described in [
 
 The script needs to be called from the command line with the following arguments:
 ```
-python seamcarving.py -file <IMAGE_PATH> -vertical <X> -horizontal <Y>
+python seamcarving.py -file <IMAGE> -vertical <X> -horizontal <Y>
 ```
-- IMAGE_PATH: path to the targeted image file
+- IMAGE: path to the targeted image file
 - X: number of vertical seams to remove
 - Y: number of horizontal seams to remove
